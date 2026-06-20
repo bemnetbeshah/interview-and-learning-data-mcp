@@ -69,3 +69,5 @@ python -m unittest discover -s tests
 The PRD calls for one hosted remote MCP server reachable by Claude and ChatGPT. This repo is ready for that code path through FastMCP, but the final hosting provider and connector authentication choice are still PRD open questions. For production, deploy this package to an always-on host such as Railway, Render, or Fly.io and set a persistent database path or replace the storage layer with Postgres.
 
 The included [Dockerfile](./Dockerfile) runs the server with `MCP_TRANSPORT=streamable-http`, binds to `0.0.0.0`, and stores the SQLite database under `/data`, which should be mounted as a persistent volume.
+
+See [docs/deployment.md](./docs/deployment.md) for remote MCP URLs, bearer-token auth, and client connection examples.

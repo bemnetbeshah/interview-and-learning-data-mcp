@@ -9,6 +9,7 @@ The Word document `interview_prep_mcp_prd.docx` is the original draft. The Markd
 ## Folder Indexes
 
 - [index.md](./index.md) lists the files in the project root.
+- [docs/index.md](./docs/index.md) lists deployment and operations documentation.
 - [src/index.md](./src/index.md) lists the source tree.
 - [src/interview_prep_mcp/index.md](./src/interview_prep_mcp/index.md) lists the Python package files.
 - [tests/index.md](./tests/index.md) lists the test files.

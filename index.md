@@ -8,6 +8,7 @@
 | [.gitignore](./.gitignore) | Ignore rules for local environment, caches, and database files. |
 | [README.md](./README.md) | Setup, run, test, and deployment notes for the MCP server. |
 | [agent.md](./agent.md) | Portable entry point for agentic coding tools that do not automatically read `AGENTS.md`. |
+| [docs/](./docs/) | Deployment and operations documentation. |
 | [index.md](./index.md) | This folder inventory. |
 | [interview_prep_mcp_prd.docx](./interview_prep_mcp_prd.docx) | Original Word draft of the Interview Prep MCP PRD. |
 | [interview_prep_mcp_prd.md](./interview_prep_mcp_prd.md) | Working Markdown PRD and product source of truth. |

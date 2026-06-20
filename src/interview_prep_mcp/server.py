@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Optional
 
+from .auth import build_auth_components
 from .config import load_settings
 from .db import connect
 from .service import InterviewPrepService
@@ -24,7 +25,14 @@ def build_mcp():
 
     settings = load_settings()
     service = InterviewPrepService(connect(settings.db_path))
-    mcp = FastMCP("Interview Prep MCP", host=settings.host, port=settings.port)
+    auth, token_verifier = build_auth_components(settings)
+    mcp = FastMCP(
+        "Interview Prep MCP",
+        host=settings.host,
+        port=settings.port,
+        auth=auth,
+        token_verifier=token_verifier,
+    )
 
     @mcp.tool()
     def list_studies():
