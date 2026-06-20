@@ -10,6 +10,8 @@ Current production deployment:
 | Environment ID | `b72fa4f2-869a-4619-849f-f345f383dfdb` |
 | Service | `Interview and Learning Data MCP` |
 | Service ID | `cb1a079a-7d9e-4d63-8b9f-04adac9ec0eb` |
+| Postgres service | `Postgres` |
+| Postgres service ID | `387f80e2-b34c-4712-b740-09bbf587d810` |
 | Public base URL | `https://interview-and-learning-data-mcp-production.up.railway.app` |
 | MCP endpoint | `https://interview-and-learning-data-mcp-production.up.railway.app/mcp` |
 | Database | Railway Postgres via `DATABASE_URL` |
@@ -21,8 +23,9 @@ The bearer token is intentionally not written here. It is set in Railway as `MCP
 - Railway deployment status: `SUCCESS`
 - Railway instance status: `RUNNING`
 - Railway Postgres is configured through `DATABASE_URL`
+- Railway Postgres service status: `SUCCESS` / `RUNNING`
 - Public unauthenticated `/mcp` request returns `401`
 - Public wrong-token `/mcp` request returns `401`
 - Public correct-token `/mcp` request passes auth
 - Remote MCP client handshake can list all PRD tools
-- Remote MCP tool calls can create hierarchy records, log an attempt, reconnect, and read persisted history
+- Remote MCP tool calls can create hierarchy records in Postgres, log an attempt, reconnect, and read persisted history
