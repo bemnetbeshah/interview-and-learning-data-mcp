@@ -22,8 +22,9 @@ def build_mcp():
             "The MCP SDK is not installed. Run `python -m pip install -e .` first."
         ) from exc
 
-    service = build_service()
-    mcp = FastMCP("Interview Prep MCP")
+    settings = load_settings()
+    service = InterviewPrepService(connect(settings.db_path))
+    mcp = FastMCP("Interview Prep MCP", host=settings.host, port=settings.port)
 
     @mcp.tool()
     def list_studies():
