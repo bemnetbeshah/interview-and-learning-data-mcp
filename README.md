@@ -16,7 +16,7 @@ The product source of truth is [interview_prep_mcp_prd.md](./interview_prep_mcp_
 ## Local Setup
 
 ```bash
-python3 -m venv .venv
+python3.11 -m venv .venv
 . .venv/bin/activate
 python -m pip install -e ".[dev]"
 ```

@@ -12,5 +12,6 @@
 | [interview_prep_mcp_prd.docx](./interview_prep_mcp_prd.docx) | Original Word draft of the Interview Prep MCP PRD. |
 | [interview_prep_mcp_prd.md](./interview_prep_mcp_prd.md) | Working Markdown PRD and product source of truth. |
 | [pyproject.toml](./pyproject.toml) | Python package metadata, dependencies, and console script. |
+| [setup.py](./setup.py) | Compatibility shim for older pip editable installs. |
 | [src/](./src/) | Source code for the MCP server package. |
 | [tests/](./tests/) | Unit tests for core behavior. |
