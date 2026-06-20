@@ -10,6 +10,7 @@ from pathlib import Path
 @dataclass(frozen=True)
 class Settings:
     db_path: Path
+    database_url: str | None
     transport: str
     host: str
     port: int
@@ -20,6 +21,7 @@ class Settings:
 
 def load_settings() -> Settings:
     db_path = Path(_env("INTERVIEW_PREP_DB_PATH", "data/interview_prep.sqlite3"))
+    database_url = _env("DATABASE_URL", "")
     transport = _env("MCP_TRANSPORT", "stdio")
     host = _env("MCP_HOST", "127.0.0.1")
     port = int(os.getenv("PORT", os.getenv("MCP_PORT", "8000")))
@@ -28,6 +30,7 @@ def load_settings() -> Settings:
     resource_server_url = _env("MCP_RESOURCE_SERVER_URL", f"{public_base_url.rstrip('/')}/mcp")
     return Settings(
         db_path=db_path,
+        database_url=database_url or None,
         transport=transport,
         host=host,
         port=port,

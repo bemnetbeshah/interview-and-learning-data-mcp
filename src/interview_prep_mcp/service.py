@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-import sqlite3
-from datetime import date
+from datetime import date, datetime
 from typing import Any, Dict, List, Optional
 
 from .sm2 import ReviewState, update_review_state
 
 
 class InterviewPrepService:
-    def __init__(self, conn: sqlite3.Connection):
+    def __init__(self, conn):
         self.conn = conn
 
     def list_studies(self) -> List[Dict[str, Any]]:
@@ -26,9 +25,10 @@ class InterviewPrepService:
 
     def create_study(self, name: str) -> Dict[str, Any]:
         _require_text(name, "name")
-        cur = self.conn.execute("INSERT INTO studies (name) VALUES (?)", (name.strip(),))
+        cur = self.conn.execute("INSERT INTO studies (name) VALUES (?) RETURNING id", (name.strip(),))
+        study_id = _row_value(cur.fetchone(), "id")
         self.conn.commit()
-        return self._get_study(cur.lastrowid)
+        return self._get_study(study_id)
 
     def list_topics(self, study_id: int) -> List[Dict[str, Any]]:
         self._ensure_active("studies", study_id)
@@ -46,16 +46,18 @@ class InterviewPrepService:
     def create_topic(self, study_id: int, name: str) -> Dict[str, Any]:
         self._ensure_active("studies", study_id)
         _require_text(name, "name")
-        next_order = self.conn.execute(
-            "SELECT COALESCE(MAX(order_index), -1) + 1 FROM topics WHERE study_id = ?",
+        next_order_row = self.conn.execute(
+            "SELECT COALESCE(MAX(order_index), -1) + 1 AS next_order FROM topics WHERE study_id = ?",
             (study_id,),
-        ).fetchone()[0]
+        ).fetchone()
+        next_order = _row_value(next_order_row, "next_order")
         cur = self.conn.execute(
-            "INSERT INTO topics (study_id, name, order_index) VALUES (?, ?, ?)",
+            "INSERT INTO topics (study_id, name, order_index) VALUES (?, ?, ?) RETURNING id",
             (study_id, name.strip(), next_order),
         )
+        topic_id = _row_value(cur.fetchone(), "id")
         self.conn.commit()
-        return self._get_topic(cur.lastrowid)
+        return self._get_topic(topic_id)
 
     def list_subtopics(self, topic_id: int) -> List[Dict[str, Any]]:
         self._ensure_active("topics", topic_id)
@@ -78,10 +80,10 @@ class InterviewPrepService:
         self._ensure_active("topics", topic_id)
         _require_text(name, "name")
         cur = self.conn.execute(
-            "INSERT INTO subtopics (topic_id, name, description) VALUES (?, ?, ?)",
+            "INSERT INTO subtopics (topic_id, name, description) VALUES (?, ?, ?) RETURNING id",
             (topic_id, name.strip(), _clean_optional_text(description)),
         )
-        subtopic_id = cur.lastrowid
+        subtopic_id = _row_value(cur.fetchone(), "id")
         self.conn.execute(
             "INSERT INTO subtopic_state (subtopic_id) VALUES (?)",
             (subtopic_id,),
@@ -153,9 +155,11 @@ class InterviewPrepService:
             """
             INSERT INTO attempts (subtopic_id, score, model_notes, question_asked)
             VALUES (?, ?, ?, ?)
+            RETURNING id
             """,
             (subtopic_id, score, model_notes.strip(), _clean_optional_text(question_asked)),
         )
+        attempt_id = _row_value(cur.fetchone(), "id")
         self.conn.execute(
             """
             UPDATE subtopic_state
@@ -178,7 +182,7 @@ class InterviewPrepService:
         )
         self.conn.commit()
         return {
-            "attempt_id": cur.lastrowid,
+            "attempt_id": attempt_id,
             "subtopic_id": subtopic_id,
             "score": score,
             "mastery_level": update.mastery_level,
@@ -206,6 +210,11 @@ class InterviewPrepService:
             limit_clause = "LIMIT ?"
             params.append(limit)
 
+        if self.conn.dialect == "postgres":
+            overdue_expr = "((?::date) - st.next_review_date)::int"
+        else:
+            overdue_expr = "CAST(julianday(?) - julianday(st.next_review_date) AS INTEGER)"
+
         rows = self.conn.execute(
             f"""
             SELECT subtopics.id AS subtopic_id,
@@ -218,7 +227,7 @@ class InterviewPrepService:
                    st.mastery_level,
                    st.interval_days,
                    st.next_review_date,
-                   CAST(julianday(?) - julianday(st.next_review_date) AS INTEGER) AS overdue_days
+                   {overdue_expr} AS overdue_days
             FROM subtopic_state st
             JOIN subtopics ON subtopics.id = st.subtopic_id
             JOIN topics ON topics.id = subtopics.topic_id
@@ -329,8 +338,23 @@ class InterviewPrepService:
         self.conn.commit()
 
 
-def _dict(row: sqlite3.Row) -> Dict[str, Any]:
-    return {key: row[key] for key in row.keys()}
+def _dict(row) -> Dict[str, Any]:
+    values = row if isinstance(row, dict) else {key: row[key] for key in row.keys()}
+    return {key: _serialize_value(value) for key, value in values.items()}
+
+
+def _row_value(row, key: str) -> Any:
+    if isinstance(row, dict):
+        return row[key]
+    if hasattr(row, "keys") and key in row.keys():
+        return row[key]
+    return row[0]
+
+
+def _serialize_value(value: Any) -> Any:
+    if isinstance(value, (date, datetime)):
+        return value.isoformat()
+    return value
 
 
 def _require_text(value: str, field_name: str) -> None:

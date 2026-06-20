@@ -12,8 +12,7 @@ Current production deployment:
 | Service ID | `cb1a079a-7d9e-4d63-8b9f-04adac9ec0eb` |
 | Public base URL | `https://interview-and-learning-data-mcp-production.up.railway.app` |
 | MCP endpoint | `https://interview-and-learning-data-mcp-production.up.railway.app/mcp` |
-| Volume mount | `/data` |
-| Database path | `/data/interview_prep.sqlite3` |
+| Database | Railway Postgres via `DATABASE_URL` |
 
 The bearer token is intentionally not written here. It is set in Railway as `MCP_BEARER_TOKEN` and mirrored locally in the gitignored `.env.local` file for connector setup.
 
@@ -21,7 +20,7 @@ The bearer token is intentionally not written here. It is set in Railway as `MCP
 
 - Railway deployment status: `SUCCESS`
 - Railway instance status: `RUNNING`
-- Railway volume state: `READY`
+- Railway Postgres is configured through `DATABASE_URL`
 - Public unauthenticated `/mcp` request returns `401`
 - Public wrong-token `/mcp` request returns `401`
 - Public correct-token `/mcp` request passes auth

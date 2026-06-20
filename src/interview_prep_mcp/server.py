@@ -12,7 +12,7 @@ from .service import InterviewPrepService
 
 def build_service() -> InterviewPrepService:
     settings = load_settings()
-    return InterviewPrepService(connect(settings.db_path))
+    return InterviewPrepService(connect(settings.db_path, settings.database_url))
 
 
 def build_mcp():
@@ -24,7 +24,7 @@ def build_mcp():
         ) from exc
 
     settings = load_settings()
-    service = InterviewPrepService(connect(settings.db_path))
+    service = InterviewPrepService(connect(settings.db_path, settings.database_url))
     auth, token_verifier = build_auth_components(settings)
     mcp = FastMCP(
         "Interview Prep MCP",

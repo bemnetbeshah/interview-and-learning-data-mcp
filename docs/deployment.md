@@ -6,7 +6,8 @@ The PRD requires one always-on remote MCP server that Claude and ChatGPT can bot
 
 | Variable | Example | Notes |
 | --- | --- | --- |
-| `INTERVIEW_PREP_DB_PATH` | `/data/interview_prep.sqlite3` | SQLite path. Mount `/data` as persistent storage. |
+| `DATABASE_URL` | platform-provided | Preferred production Postgres URL. |
+| `INTERVIEW_PREP_DB_PATH` | `/data/interview_prep.sqlite3` | SQLite fallback path when `DATABASE_URL` is unset. |
 | `MCP_TRANSPORT` | `streamable-http` | Remote MCP transport. |
 | `MCP_HOST` | `0.0.0.0` | Bind address for hosted container platforms. |
 | `PORT` | platform-provided | Preferred hosted port variable. Falls back to `MCP_PORT`. |
@@ -73,7 +74,7 @@ Source: [MCP Authorization spec](https://modelcontextprotocol.io/specification/2
 ## Railway Sketch
 
 1. Deploy this repository with the included [Dockerfile](../Dockerfile).
-2. Add a Railway Volume mounted at `/data`.
+2. Add a Railway Postgres database and set the app service `DATABASE_URL` to that database's connection URL.
 3. Set `MCP_TRANSPORT=streamable-http`.
 4. Set `MCP_HOST=0.0.0.0`.
 5. Set `MCP_BEARER_TOKEN` to a strong random value.
@@ -82,4 +83,4 @@ Source: [MCP Authorization spec](https://modelcontextprotocol.io/specification/2
 
 ## Production Database Note
 
-The PRD names Postgres/Supabase as the preferred production database and SQLite as an acceptable local prototype path. The current implementation uses SQLite with a persistent volume. Moving to Postgres should happen before relying on the server for long-term critical history without filesystem-volume backups.
+The PRD names Postgres/Supabase as the preferred production database and SQLite as an acceptable local prototype path. This implementation uses Postgres whenever `DATABASE_URL` is present and otherwise falls back to SQLite.
