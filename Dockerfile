@@ -13,6 +13,4 @@ COPY src ./src
 
 RUN pip install --no-cache-dir .
 
-VOLUME ["/data"]
-
 CMD ["interview-prep-mcp"]

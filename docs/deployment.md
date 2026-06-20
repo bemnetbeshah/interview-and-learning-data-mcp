@@ -73,7 +73,7 @@ Source: [MCP Authorization spec](https://modelcontextprotocol.io/specification/2
 ## Railway Sketch
 
 1. Deploy this repository with the included [Dockerfile](../Dockerfile).
-2. Add a persistent volume mounted at `/data`.
+2. Add a Railway Volume mounted at `/data`.
 3. Set `MCP_TRANSPORT=streamable-http`.
 4. Set `MCP_HOST=0.0.0.0`.
 5. Set `MCP_BEARER_TOKEN` to a strong random value.
