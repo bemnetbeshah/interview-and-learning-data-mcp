@@ -7,6 +7,7 @@ from typing import Optional
 from .auth import build_auth_components
 from .config import load_settings
 from .db import connect
+from .oauth import handle_oauth_approval
 from .service import InterviewPrepService
 
 
@@ -24,15 +25,23 @@ def build_mcp():
         ) from exc
 
     settings = load_settings()
-    service = InterviewPrepService(connect(settings.db_path, settings.database_url))
-    auth, token_verifier = build_auth_components(settings)
+    db = connect(settings.db_path, settings.database_url)
+    service = InterviewPrepService(db)
+    auth, token_verifier, oauth_provider = build_auth_components(settings, db)
     mcp = FastMCP(
         "Interview Prep MCP",
         host=settings.host,
         port=settings.port,
         auth=auth,
         token_verifier=token_verifier,
+        auth_server_provider=oauth_provider,
     )
+
+    if oauth_provider is not None:
+
+        @mcp.custom_route("/oauth/approve", methods=["GET", "POST"], include_in_schema=False)
+        async def oauth_approval(request):
+            return await handle_oauth_approval(request, oauth_provider)
 
     @mcp.tool()
     def list_studies():

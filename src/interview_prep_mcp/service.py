@@ -85,8 +85,8 @@ class InterviewPrepService:
         )
         subtopic_id = _row_value(cur.fetchone(), "id")
         self.conn.execute(
-            "INSERT INTO subtopic_state (subtopic_id) VALUES (?)",
-            (subtopic_id,),
+            "INSERT INTO subtopic_state (subtopic_id, next_review_date) VALUES (?, ?)",
+            (subtopic_id, date.today().isoformat()),
         )
         self.conn.commit()
         return self._get_subtopic(subtopic_id)

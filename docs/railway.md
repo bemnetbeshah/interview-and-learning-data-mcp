@@ -15,17 +15,19 @@ Current production deployment:
 | Public base URL | `https://interview-and-learning-data-mcp-production.up.railway.app` |
 | MCP endpoint | `https://interview-and-learning-data-mcp-production.up.railway.app/mcp` |
 | Database | Railway Postgres via `DATABASE_URL` |
+| Auth mode | OAuth for ChatGPT Developer Mode |
 
-The bearer token is intentionally not written here. It is set in Railway as `MCP_BEARER_TOKEN` and mirrored locally in the gitignored `.env.local` file for connector setup.
+`OAUTH_LOGIN_SECRET` is set in Railway and mirrored locally in the gitignored `.env.local` file. Use that value in the browser approval form during the ChatGPT OAuth connection flow. `MCP_BEARER_TOKEN` is unset in Railway so OAuth is the active hosted auth mode.
 
 ## Verified
 
 - Railway deployment status: `SUCCESS`
+- Latest app deployment ID: `c8f99c7d-5d04-44d8-b3cc-f45948224844`
 - Railway instance status: `RUNNING`
 - Railway Postgres is configured through `DATABASE_URL`
 - Railway Postgres service status: `SUCCESS` / `RUNNING`
-- Public unauthenticated `/mcp` request returns `401`
-- Public wrong-token `/mcp` request returns `401`
-- Public correct-token `/mcp` request passes auth
-- Remote MCP client handshake can list all PRD tools
+- Public unauthenticated raw `/mcp` request returns `401` with a protected-resource metadata link
+- OAuth authorization server metadata is available at `/.well-known/oauth-authorization-server`
+- OAuth protected-resource metadata is available at `/.well-known/oauth-protected-resource/mcp`
+- Remote MCP client handshake can list all PRD tools after OAuth bearer-token authorization
 - Remote MCP tool calls can create hierarchy records in Postgres, log an attempt, reconnect, and read persisted history

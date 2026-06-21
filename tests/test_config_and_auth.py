@@ -31,7 +31,7 @@ class ConfigAndAuthTests(unittest.IsolatedAsyncioTestCase):
     def test_auth_components_are_enabled_only_when_token_exists(self):
         with patch.dict("os.environ", {}, clear=True):
             no_auth_settings = load_settings()
-        self.assertEqual(build_auth_components(no_auth_settings), (None, None))
+        self.assertEqual(build_auth_components(no_auth_settings), (None, None, None))
 
         with patch.dict(
             "os.environ",
@@ -42,8 +42,9 @@ class ConfigAndAuthTests(unittest.IsolatedAsyncioTestCase):
             clear=True,
         ):
             auth_settings = load_settings()
-        auth, verifier = build_auth_components(auth_settings)
+        auth, verifier, provider = build_auth_components(auth_settings)
 
         self.assertIsNotNone(auth)
         self.assertIsNotNone(verifier)
+        self.assertIsNone(provider)
         self.assertEqual(str(auth.resource_server_url), "https://study.example.com/mcp")

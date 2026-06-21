@@ -11,7 +11,10 @@ The PRD requires one always-on remote MCP server that Claude and ChatGPT can bot
 | `MCP_TRANSPORT` | `streamable-http` | Remote MCP transport. |
 | `MCP_HOST` | `0.0.0.0` | Bind address for hosted container platforms. |
 | `PORT` | platform-provided | Preferred hosted port variable. Falls back to `MCP_PORT`. |
-| `MCP_BEARER_TOKEN` | generated secret | Single-user access token. Do not commit this. |
+| `OAUTH_LOGIN_SECRET` | generated secret | Enables ChatGPT Developer Mode OAuth. Enter this secret in the approval form during connection. |
+| `OAUTH_TOKEN_TTL_SECONDS` | `3600` | OAuth access-token lifetime. |
+| `OAUTH_REFRESH_TOKEN_TTL_SECONDS` | `2592000` | OAuth refresh-token lifetime. |
+| `MCP_BEARER_TOKEN` | generated secret | Optional bearer-token mode for API clients that can pass Authorization directly. Leave unset when using OAuth. |
 | `MCP_PUBLIC_BASE_URL` | `https://your-app.example.com` | Public HTTPS base URL used in auth metadata. |
 
 The MCP endpoint path is:
@@ -63,11 +66,28 @@ Configure the connector to send:
 Authorization: Bearer your-mcp-bearer-token
 ```
 
+## ChatGPT Developer Mode
+
+ChatGPT Developer Mode custom apps currently offer OAuth, No Authentication, and Mixed Authentication. Use OAuth for the hosted Railway deployment.
+
+Create the app with:
+
+```text
+Auth option: OAuth
+MCP URL: https://your-app.example.com/mcp
+```
+
+The server exposes OAuth discovery, dynamic client registration, `/authorize`, `/token`, and `/revoke`. During the OAuth flow, the authorization page asks for `OAUTH_LOGIN_SECRET`. This keeps the connector single-user while letting ChatGPT use normal OAuth access and refresh tokens afterward.
+
 ## Auth Model
 
-This repo implements a single-user bearer-token verifier. When `MCP_BEARER_TOKEN` is set, FastMCP requires bearer auth for HTTP transports. When it is unset, local stdio development remains unauthenticated.
+This repo supports three hosted auth modes:
 
-This is intentionally simpler than a full OAuth authorization server. The MCP authorization spec allows authorization to be optional, but HTTP protected resource requests use the standard bearer-token header when auth is enabled.
+- `OAUTH_LOGIN_SECRET` set: OAuth is enabled and HTTP MCP requests require OAuth bearer tokens.
+- `MCP_BEARER_TOKEN` set and OAuth unset: static bearer-token mode is enabled.
+- Both unset: HTTP and local stdio development are unauthenticated.
+
+OAuth mode stores dynamic clients, pending authorizations, authorization codes, access tokens, and refresh tokens in the project database.
 
 Source: [MCP Authorization spec](https://modelcontextprotocol.io/specification/2025-06-18/basic/authorization).
 
@@ -77,7 +97,7 @@ Source: [MCP Authorization spec](https://modelcontextprotocol.io/specification/2
 2. Add a Railway Postgres database and set the app service `DATABASE_URL` to that database's connection URL.
 3. Set `MCP_TRANSPORT=streamable-http`.
 4. Set `MCP_HOST=0.0.0.0`.
-5. Set `MCP_BEARER_TOKEN` to a strong random value.
+5. For ChatGPT Developer Mode, set `OAUTH_LOGIN_SECRET` to a strong random value and leave `MCP_BEARER_TOKEN` unset.
 6. Set `MCP_PUBLIC_BASE_URL` to the Railway public HTTPS domain.
 7. Connect clients to `https://<railway-domain>/mcp`.
 

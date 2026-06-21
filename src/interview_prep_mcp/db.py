@@ -110,6 +110,54 @@ def initialize_sqlite_schema(db: Database) -> None:
         CREATE INDEX IF NOT EXISTS idx_subtopics_topic_id ON subtopics(topic_id);
         CREATE INDEX IF NOT EXISTS idx_attempts_subtopic_id ON attempts(subtopic_id);
         CREATE INDEX IF NOT EXISTS idx_state_next_review ON subtopic_state(next_review_date);
+
+        CREATE TABLE IF NOT EXISTS oauth_clients (
+            client_id TEXT PRIMARY KEY,
+            client_info TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS oauth_pending_authorizations (
+            request_id TEXT PRIMARY KEY,
+            client_id TEXT NOT NULL,
+            state TEXT,
+            scopes_json TEXT NOT NULL,
+            code_challenge TEXT NOT NULL,
+            redirect_uri TEXT NOT NULL,
+            redirect_uri_provided_explicitly INTEGER NOT NULL,
+            resource TEXT,
+            expires_at REAL NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS oauth_authorization_codes (
+            code TEXT PRIMARY KEY,
+            client_id TEXT NOT NULL,
+            scopes_json TEXT NOT NULL,
+            code_challenge TEXT NOT NULL,
+            redirect_uri TEXT NOT NULL,
+            redirect_uri_provided_explicitly INTEGER NOT NULL,
+            resource TEXT,
+            subject TEXT,
+            expires_at REAL NOT NULL,
+            used_at TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS oauth_access_tokens (
+            token TEXT PRIMARY KEY,
+            client_id TEXT NOT NULL,
+            scopes_json TEXT NOT NULL,
+            resource TEXT,
+            subject TEXT,
+            expires_at INTEGER NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS oauth_refresh_tokens (
+            token TEXT PRIMARY KEY,
+            client_id TEXT NOT NULL,
+            scopes_json TEXT NOT NULL,
+            subject TEXT,
+            expires_at INTEGER NOT NULL
+        );
         """
     )
     db.commit()
@@ -166,6 +214,54 @@ def initialize_postgres_schema(db: Database) -> None:
         CREATE INDEX IF NOT EXISTS idx_subtopics_topic_id ON subtopics(topic_id);
         CREATE INDEX IF NOT EXISTS idx_attempts_subtopic_id ON attempts(subtopic_id);
         CREATE INDEX IF NOT EXISTS idx_state_next_review ON subtopic_state(next_review_date);
+
+        CREATE TABLE IF NOT EXISTS oauth_clients (
+            client_id TEXT PRIMARY KEY,
+            client_info TEXT NOT NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS oauth_pending_authorizations (
+            request_id TEXT PRIMARY KEY,
+            client_id TEXT NOT NULL,
+            state TEXT,
+            scopes_json TEXT NOT NULL,
+            code_challenge TEXT NOT NULL,
+            redirect_uri TEXT NOT NULL,
+            redirect_uri_provided_explicitly BOOLEAN NOT NULL,
+            resource TEXT,
+            expires_at DOUBLE PRECISION NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS oauth_authorization_codes (
+            code TEXT PRIMARY KEY,
+            client_id TEXT NOT NULL,
+            scopes_json TEXT NOT NULL,
+            code_challenge TEXT NOT NULL,
+            redirect_uri TEXT NOT NULL,
+            redirect_uri_provided_explicitly BOOLEAN NOT NULL,
+            resource TEXT,
+            subject TEXT,
+            expires_at DOUBLE PRECISION NOT NULL,
+            used_at TIMESTAMPTZ
+        );
+
+        CREATE TABLE IF NOT EXISTS oauth_access_tokens (
+            token TEXT PRIMARY KEY,
+            client_id TEXT NOT NULL,
+            scopes_json TEXT NOT NULL,
+            resource TEXT,
+            subject TEXT,
+            expires_at INTEGER NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS oauth_refresh_tokens (
+            token TEXT PRIMARY KEY,
+            client_id TEXT NOT NULL,
+            scopes_json TEXT NOT NULL,
+            subject TEXT,
+            expires_at INTEGER NOT NULL
+        );
         """
     )
     db.commit()

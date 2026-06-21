@@ -15,6 +15,9 @@ class Settings:
     host: str
     port: int
     bearer_token: str | None
+    oauth_login_secret: str | None
+    oauth_token_ttl_seconds: int
+    oauth_refresh_token_ttl_seconds: int
     public_base_url: str
     resource_server_url: str
 
@@ -26,6 +29,9 @@ def load_settings() -> Settings:
     host = _env("MCP_HOST", "127.0.0.1")
     port = int(os.getenv("PORT", os.getenv("MCP_PORT", "8000")))
     bearer_token = _env("MCP_BEARER_TOKEN", "")
+    oauth_login_secret = _env("OAUTH_LOGIN_SECRET", "")
+    oauth_token_ttl_seconds = int(_env("OAUTH_TOKEN_TTL_SECONDS", "3600"))
+    oauth_refresh_token_ttl_seconds = int(_env("OAUTH_REFRESH_TOKEN_TTL_SECONDS", "2592000"))
     public_base_url = _env("MCP_PUBLIC_BASE_URL", f"http://{host}:{port}")
     resource_server_url = _env("MCP_RESOURCE_SERVER_URL", f"{public_base_url.rstrip('/')}/mcp")
     return Settings(
@@ -35,6 +41,9 @@ def load_settings() -> Settings:
         host=host,
         port=port,
         bearer_token=bearer_token or None,
+        oauth_login_secret=oauth_login_secret or None,
+        oauth_token_ttl_seconds=oauth_token_ttl_seconds,
+        oauth_refresh_token_ttl_seconds=oauth_refresh_token_ttl_seconds,
         public_base_url=public_base_url,
         resource_server_url=resource_server_url,
     )

@@ -6,6 +6,8 @@ import hmac
 from dataclasses import dataclass
 from typing import Optional
 
+from .oauth import PersonalOAuthProvider, VALID_SCOPES
+
 
 @dataclass(frozen=True)
 class StaticBearerTokenVerifier:
@@ -30,11 +32,30 @@ class StaticBearerTokenVerifier:
         )
 
 
-def build_auth_components(settings) -> tuple[Optional[object], Optional[object]]:
+def build_auth_components(settings, db=None) -> tuple[Optional[object], Optional[object], Optional[object]]:
     """Return FastMCP auth settings and token verifier when auth is configured."""
 
+    if settings.oauth_login_secret:
+        if db is None:
+            raise ValueError("OAuth auth requires a database connection")
+        from mcp.server.auth.settings import AuthSettings, ClientRegistrationOptions, RevocationOptions
+
+        provider = PersonalOAuthProvider(db, settings)
+        auth = AuthSettings(
+            issuer_url=settings.public_base_url,
+            resource_server_url=settings.resource_server_url,
+            required_scopes=VALID_SCOPES,
+            client_registration_options=ClientRegistrationOptions(
+                enabled=True,
+                valid_scopes=VALID_SCOPES,
+                default_scopes=VALID_SCOPES,
+            ),
+            revocation_options=RevocationOptions(enabled=True),
+        )
+        return auth, None, provider
+
     if not settings.bearer_token:
-        return None, None
+        return None, None, None
 
     from mcp.server.auth.settings import AuthSettings
 
@@ -43,4 +64,4 @@ def build_auth_components(settings) -> tuple[Optional[object], Optional[object]]
         resource_server_url=settings.resource_server_url,
         required_scopes=["study:read", "study:write"],
     )
-    return auth, StaticBearerTokenVerifier(settings.bearer_token)
+    return auth, StaticBearerTokenVerifier(settings.bearer_token), None

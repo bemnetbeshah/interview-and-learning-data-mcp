@@ -38,6 +38,8 @@ Useful environment variables:
 | `MCP_TRANSPORT` | `stdio` | FastMCP transport, for example `stdio` or `streamable-http` depending on the installed MCP SDK. |
 | `MCP_HOST` | `127.0.0.1` | Host for HTTP transports. |
 | `MCP_PORT` / `PORT` | `8000` | Port for HTTP transports. `PORT` is checked first for platform hosts. |
+| `OAUTH_LOGIN_SECRET` | unset | Enables single-user OAuth for ChatGPT Developer Mode when set. |
+| `MCP_BEARER_TOKEN` | unset | Enables static bearer-token auth when set and OAuth is unset. |
 
 ## Tools
 
@@ -71,4 +73,4 @@ The PRD calls for one hosted remote MCP server reachable by Claude and ChatGPT. 
 
 The included [Dockerfile](./Dockerfile) runs the server with `MCP_TRANSPORT=streamable-http` and binds to `0.0.0.0`. SQLite remains available for local development or small single-volume deployments.
 
-See [docs/deployment.md](./docs/deployment.md) for remote MCP URLs, bearer-token auth, and client connection examples.
+See [docs/deployment.md](./docs/deployment.md) for remote MCP URLs, OAuth, bearer-token auth, and client connection examples.
