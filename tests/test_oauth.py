@@ -26,6 +26,16 @@ class OAuthProviderTests(unittest.TestCase):
                 oauth_refresh_token_ttl_seconds=86400,
                 public_base_url="https://study.example.com",
                 resource_server_url="https://study.example.com/mcp",
+                default_subject="bem",
+                allow_unauthenticated_http=False,
+                oidc_issuer_url=None,
+                oidc_jwks_url=None,
+                oidc_audience=None,
+                oidc_subject_claim="sub",
+                oidc_required_scopes=["study:read", "study:write"],
+                public_contact_email="support@example.com",
+                public_service_name="Interview Prep MCP",
+                rate_limit_per_minute=120,
             )
             provider = PersonalOAuthProvider(connect_sqlite(":memory:"), settings)
             client = OAuthClientInformationFull(
@@ -66,5 +76,6 @@ class OAuthProviderTests(unittest.TestCase):
             self.assertEqual(access_token.client_id, "client-1")
             self.assertEqual(access_token.scopes, ["study:read", "study:write"])
             self.assertEqual(access_token.resource, "https://study.example.com/mcp")
+            self.assertEqual(access_token.subject, "bem")
 
         asyncio.run(run_flow())

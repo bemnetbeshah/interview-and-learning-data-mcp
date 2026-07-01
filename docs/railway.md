@@ -17,6 +17,8 @@ Current production deployment:
 | Database | Railway Postgres via `DATABASE_URL` |
 | Auth mode | OAuth for ChatGPT Developer Mode |
 
+This branch includes [../railway.json](../railway.json) so future deployments use the repo-pinned Dockerfile builder, `/healthz` platform healthcheck, and on-failure restart policy instead of relying only on dashboard settings.
+
 `OAUTH_LOGIN_SECRET` is set in Railway and mirrored locally in the gitignored `.env.local` file. Use that value in the browser approval form during the ChatGPT OAuth connection flow. `MCP_BEARER_TOKEN` is unset in Railway so OAuth is the active hosted auth mode.
 
 ## Verified

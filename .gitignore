@@ -7,6 +7,8 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 data/
+dist/*
+!dist/index.md
 *.sqlite3
 *.db
 .env

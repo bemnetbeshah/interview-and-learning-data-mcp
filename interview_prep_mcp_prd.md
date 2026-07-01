@@ -3,14 +3,14 @@
 Product Requirements Document
 
 Owner: Bem  
-Status: Draft for review  
-Last updated: June 20, 2026
+Status: Public-facing implementation branch
+Last updated: June 24, 2026
 
 ## 1. Overview
 
 Bem currently uses Claude and ChatGPT voice mode as ad-hoc mock interviewers for technical prep, including AI engineering interviews, coursework like Calc 3, and other study areas. The core limitation is that every conversation starts from zero. The model has no memory of which topics were already covered, how well Bem performed, or what is overdue for review.
 
-This PRD defines a personal Model Context Protocol (MCP) server that gives both Claude and ChatGPT shared, persistent access to Bem's study progress. The same server, same tools, and same database are used by both clients, which connect independently and reason over identical state.
+This PRD defines a Model Context Protocol (MCP) server that gives Claude and ChatGPT shared, persistent access to a user's study progress. The same server, same tools, and same database are used by both clients, which connect independently and reason over identical state for the authenticated user.
 
 ## 2. Problem Statement
 
@@ -22,6 +22,7 @@ This PRD defines a personal Model Context Protocol (MCP) server that gives both 
 ## 3. Goals
 
 - A single MCP server, hosted once, that both Claude via Custom Connector and ChatGPT via Apps SDK connector can call.
+- Support multiple public users without leaking studies, topics, subtopics, attempts, or scheduling state across accounts.
 - Track progress hierarchically: Study -> Topic -> Subtopic.
 - Log every quiz attempt with a quality score and free-text notes from the grading model.
 - Run spaced repetition with the SM-2 algorithm server-side so the LLM does not have to do scheduling math. It just asks what is due and gets an answer.
@@ -29,9 +30,9 @@ This PRD defines a personal Model Context Protocol (MCP) server that gives both 
 
 ### Non-Goals for v1
 
-- No multi-user support. This is a single-user personal tool.
 - No custom UI or dashboard. Interaction happens entirely through LLM tool calls. A read-only dashboard could be a v2 nice-to-have.
 - No automatic topic generation. Bem defines studies, topics, and subtopics himself, with LLM assistance through the create tools.
+- No admin console or billing system. Public availability means account isolation and hosted access first.
 
 ## 4. Architecture
 
@@ -47,6 +48,7 @@ Both Claude's Custom Connectors and ChatGPT's Apps SDK connect to remote MCP ser
 - **Database:** Postgres. Supabase fits Bem's existing stack and pgvector familiarity, though SQLite works for local prototyping before deployment.
 - **Hosting:** A small always-on service such as Railway, Render, or Fly.io, so the server is reachable 24/7 from both Anthropic's and OpenAI's infrastructure.
 - **SM-2 scheduling logic:** Lives in the server code, not in the LLM. The LLM calls a tool and receives a computed result. It never has to calculate intervals itself.
+- **Distribution wrappers:** OpenAI app submission and Codex plugin packaging should point at the same hosted MCP server instead of introducing a second API.
 
 ### System Flow
 
@@ -60,14 +62,17 @@ ChatGPT (web/desktop/mobile)
   -> One hosted MCP server
 
 One hosted MCP server
+  -> Auth: token subject identifies the current user
   -> Tools: list/create/update studies and topics, log_attempt,
             get_due_subtopics, get_history
-  -> Postgres: studies, topics, subtopics, attempts, subtopic_state
+  -> Postgres: users/subjects, studies, topics, subtopics, attempts, subtopic_state
 ```
 
 ## 5. Data Model
 
-Hierarchy: Study -> Topic -> Subtopic. Progress is tracked at the subtopic level, since that is the granular unit that gets quizzed and improved on.
+Hierarchy: User -> Study -> Topic -> Subtopic. Progress is tracked at the subtopic level, since that is the granular unit that gets quizzed and improved on.
+
+Every tool call is scoped by the authenticated token subject. User identity is server-derived from OAuth/bearer auth context, not supplied by the model as a tool argument. This prevents a client from reading another user's data by guessing integer ids.
 
 The `attempts` table is an append-only log for full history and trend views. The `subtopic_state` table is a fast-lookup snapshot of current mastery and the spaced-repetition clock, updated after each logged attempt. Splitting these avoids recomputing the whole history just to answer what is due today.
 
@@ -76,6 +81,7 @@ The `attempts` table is an append-only log for full history and trend views. The
 | Field | Type | Notes |
 | --- | --- | --- |
 | `id` | uuid / int PK | Primary key |
+| `owner_subject` | text | Auth subject that owns this study and all nested rows |
 | `name` | text | Example: "AI Engineering Interview", "Calc 3", "Computer Vision" |
 | `created_at` | timestamp |  |
 
@@ -133,6 +139,7 @@ All tools below run on the server. The LLM's job is to decide which tool to call
 | `list_subtopics` | Returns subtopics within a topic, with current `mastery_level` | `topic_id` |
 | `get_due_subtopics` | Returns spaced-repetition queue, sorted by overdue-ness; optionally scoped to one study | `study_id?`, `limit?` |
 | `get_subtopic_history` | Returns past attempts, scores, and trend for one subtopic | `subtopic_id` |
+| `export_my_data` | Returns the authenticated user's full study data export | None |
 
 ### 6.2 Write Tool: Core Loop
 
@@ -151,6 +158,7 @@ All tools below run on the server. The LLM's job is to decide which tool to call
 | `delete_study` | Soft-deletes a study while preserving history | `id` |
 | `delete_topic` | Soft-deletes a topic while preserving history | `id` |
 | `delete_subtopic` | Soft-deletes a subtopic while preserving history | `id` |
+| `delete_my_data` | Hard-deletes all study data for the authenticated user after explicit confirmation | `confirmation` |
 
 ## 7. Spaced Repetition Logic: SM-2
 
@@ -176,10 +184,28 @@ This logic lives entirely in the `log_attempt` tool's server-side implementation
 - Scoring scale: 1-5 classic SM-2 / Anki-style, confirmed by Bem.
 - Hierarchy: Study -> Topic -> Subtopic, with progress tracked at the subtopic level.
 - Single server architecture serving both Claude and ChatGPT via their respective native MCP connector support. No separate GPT Actions schema is needed.
+- Multi-user isolation lives in the service/database boundary. The MCP tool schemas do not expose `user_id`; the server derives the active owner from auth.
+- Railway remains the v1 hosting target because it already has the deployed service, public HTTPS, Docker support, and Postgres.
+- Public auth is implemented as external OIDC/JWT bearer-token verification. The existing approval-secret OAuth provider remains for private Developer Mode and invite-only testing.
+- OIDC/JWT verification is covered by signed-token tests for issuer, audience, subject, expiry, and required study scopes across common provider claim shapes.
+- Public account data rights are exposed through `export_my_data` and confirmation-gated `delete_my_data`.
+- Public deployments include per-subject in-memory tool-call rate limiting and a deployment verifier script for public pages, health, and unauthenticated MCP rejection.
+- Authenticated hosted MCP sessions can be smoke-tested with `scripts/verify_authenticated_mcp.py` once a reviewer/test bearer token is available.
+- The production container includes a `/healthz` Docker healthcheck.
+- Reviewer-safe demo data can be seeded idempotently for a chosen auth subject with `scripts/seed_demo_data.py`.
+- MCP tools include review-relevant annotations for read-only, destructive, idempotent, and open-world behavior.
+- Database initialization is idempotent and records applied schema versions in `schema_migrations` for production auditability.
+- Production configuration can be checked before deployment with `scripts/check_production_config.py`.
+- Railway build/deploy behavior is pinned in `railway.json` so the Dockerfile builder, `/healthz` platform healthcheck, and restart policy travel with the code.
+- OpenAI review metadata can be generated with `scripts/build_submission_packet.py` so app listing fields, reviewer prompts, scopes, and tool-contract notes stay aligned with plugin metadata.
+- The registered MCP tool/prompt contract can be snapshotted with `scripts/build_mcp_contract_snapshot.py` for review and version comparison.
+- Reviewed MCP contract snapshots can be compared with `scripts/diff_mcp_contract.py` to flag breaking metadata changes before deploy or resubmission.
+- Plugin distribution URLs can be checked or updated with `scripts/manage_public_urls.py` when moving from the Railway subdomain to a stable custom domain.
+- Public distribution should use the OpenAI app submission flow for ChatGPT/Codex and the repo-local Codex plugin only for development/workspace installs until official public plugin self-publishing is available.
 
 ## 10. Open Questions
 
-- Hosting choice: Railway versus Render versus Fly.io. This is mainly a cost and familiarity tradeoff, with no functional difference for this use case.
-- Auth: lightweight OAuth required by both Claude and ChatGPT connector specs versus a simple shared-secret header. The implementation needs to satisfy both platforms' connector requirements.
+- Auth provider choice for public launch: the branch can validate OIDC/JWT tokens, but deployment still needs a selected provider such as Supabase Auth, Clerk, Auth0, WorkOS, Cognito, or another proper identity provider.
 - Whether `model_notes` should be structured, such as tags for "missed edge case" or "conceptual gap", or stay free text for v1.
 - Whether `mastery_level` needs its own decay-over-time logic, separate from review scheduling, for a future progress-dashboard view.
+- Whether traffic volume justifies distributed rate limiting beyond the current per-process limiter.

@@ -20,6 +20,16 @@ class Settings:
     oauth_refresh_token_ttl_seconds: int
     public_base_url: str
     resource_server_url: str
+    default_subject: str
+    allow_unauthenticated_http: bool
+    oidc_issuer_url: str | None
+    oidc_jwks_url: str | None
+    oidc_audience: str | None
+    oidc_subject_claim: str
+    oidc_required_scopes: list[str]
+    public_contact_email: str
+    public_service_name: str
+    rate_limit_per_minute: int
 
 
 def load_settings() -> Settings:
@@ -34,6 +44,16 @@ def load_settings() -> Settings:
     oauth_refresh_token_ttl_seconds = int(_env("OAUTH_REFRESH_TOKEN_TTL_SECONDS", "2592000"))
     public_base_url = _env("MCP_PUBLIC_BASE_URL", f"http://{host}:{port}")
     resource_server_url = _env("MCP_RESOURCE_SERVER_URL", f"{public_base_url.rstrip('/')}/mcp")
+    default_subject = _env("MCP_DEFAULT_SUBJECT", "bem")
+    allow_unauthenticated_http = _env_bool("MCP_ALLOW_UNAUTHENTICATED_HTTP", False)
+    oidc_issuer_url = _env("OIDC_ISSUER_URL", "")
+    oidc_jwks_url = _env("OIDC_JWKS_URL", "")
+    oidc_audience = _env("OIDC_AUDIENCE", "")
+    oidc_subject_claim = _env("OIDC_SUBJECT_CLAIM", "sub")
+    oidc_required_scopes = _env_list("OIDC_REQUIRED_SCOPES", "study:read study:write")
+    public_contact_email = _env("PUBLIC_CONTACT_EMAIL", "support@example.com")
+    public_service_name = _env("PUBLIC_SERVICE_NAME", "Interview Prep MCP")
+    rate_limit_per_minute = int(_env("RATE_LIMIT_PER_MINUTE", "120"))
     return Settings(
         db_path=db_path,
         database_url=database_url or None,
@@ -46,6 +66,16 @@ def load_settings() -> Settings:
         oauth_refresh_token_ttl_seconds=oauth_refresh_token_ttl_seconds,
         public_base_url=public_base_url,
         resource_server_url=resource_server_url,
+        default_subject=default_subject,
+        allow_unauthenticated_http=allow_unauthenticated_http,
+        oidc_issuer_url=oidc_issuer_url or None,
+        oidc_jwks_url=oidc_jwks_url or None,
+        oidc_audience=oidc_audience or None,
+        oidc_subject_claim=oidc_subject_claim,
+        oidc_required_scopes=oidc_required_scopes,
+        public_contact_email=public_contact_email,
+        public_service_name=public_service_name,
+        rate_limit_per_minute=rate_limit_per_minute,
     )
 
 
@@ -54,3 +84,15 @@ def _env(name: str, default: str) -> str:
     if value is None or not value.strip():
         return default
     return value.strip()
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None or not value.strip():
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _env_list(name: str, default: str) -> list[str]:
+    value = _env(name, default)
+    return [item for item in value.replace(",", " ").split() if item]

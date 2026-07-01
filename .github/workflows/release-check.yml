@@ -1,0 +1,80 @@
+name: Release Check
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - public-facing-version
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release-check:
+    name: Python release gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install package
+        run: python -m pip install -e ".[dev]"
+
+      - name: Run release check
+        run: python scripts/release_check.py
+
+      - name: Build plugin archive
+        run: python scripts/package_plugin.py
+
+      - name: Build submission packet
+        run: python scripts/build_submission_packet.py
+
+      - name: Build MCP contract snapshot
+        run: python scripts/build_mcp_contract_snapshot.py
+
+      - name: Upload plugin archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: interview-prep-mcp-plugin
+          path: dist/*.plugin.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload submission packet
+        uses: actions/upload-artifact@v4
+        with:
+          name: openai-submission-packet
+          path: dist/openai-submission-packet.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload MCP contract snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcp-contract-snapshot
+          path: dist/mcp-contract-snapshot.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload launch docs
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-launch-docs
+          path: |
+            docs/public-launch.md
+            docs/openai-submission.md
+            docs/public-auth.md
+            docs/oidc-provider-setup.md
+            docs/production-env.example
+          if-no-files-found: error
+          retention-days: 14

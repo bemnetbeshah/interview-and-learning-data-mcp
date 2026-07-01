@@ -1,4 +1,4 @@
-"""Small single-user OAuth provider for hosted ChatGPT MCP connections."""
+"""Small approval-secret OAuth provider for hosted ChatGPT MCP connections."""
 
 from __future__ import annotations
 
@@ -31,7 +31,6 @@ from .db import Database
 READ_SCOPE = "study:read"
 WRITE_SCOPE = "study:write"
 VALID_SCOPES = [READ_SCOPE, WRITE_SCOPE]
-SUBJECT = "bem"
 
 
 @dataclass(frozen=True)
@@ -136,12 +135,12 @@ class PersonalOAuthProvider:
             client_id=authorization_code.client_id,
             scopes=authorization_code.scopes,
             resource=authorization_code.resource,
-            subject=authorization_code.subject or SUBJECT,
+            subject=authorization_code.subject or self.settings.default_subject,
         )
         refresh_token = self._issue_refresh_token(
             client_id=authorization_code.client_id,
             scopes=authorization_code.scopes,
-            subject=authorization_code.subject or SUBJECT,
+            subject=authorization_code.subject or self.settings.default_subject,
         )
         self.db.commit()
         return OAuthToken(
@@ -177,12 +176,12 @@ class PersonalOAuthProvider:
             client_id=refresh_token.client_id,
             scopes=scopes,
             resource=self.settings.resource_server_url,
-            subject=refresh_token.subject or SUBJECT,
+            subject=refresh_token.subject or self.settings.default_subject,
         )
         new_refresh_token = self._issue_refresh_token(
             client_id=refresh_token.client_id,
             scopes=scopes,
-            subject=refresh_token.subject or SUBJECT,
+            subject=refresh_token.subject or self.settings.default_subject,
         )
         self.db.commit()
         return OAuthToken(
@@ -249,7 +248,7 @@ class PersonalOAuthProvider:
                 pending.redirect_uri,
                 pending.redirect_uri_provided_explicitly,
                 pending.resource,
-                SUBJECT,
+                self.settings.default_subject,
                 time.time() + 300,
             ),
         )

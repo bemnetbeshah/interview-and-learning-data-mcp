@@ -1,0 +1,29 @@
+{
+  "name": "interview-prep-mcp",
+  "version": "0.1.0",
+  "description": "Connect Codex to the hosted Interview Prep MCP study and spaced-repetition server.",
+  "author": {
+    "name": "Bem Beshah"
+  },
+  "homepage": "https://interview-and-learning-data-mcp-production.up.railway.app",
+  "repository": "https://github.com/bemnetbeshah/interview-prep-mcp",
+  "keywords": ["mcp", "study", "interview-prep", "spaced-repetition"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Interview Prep MCP",
+    "shortDescription": "Shared study progress and review scheduling.",
+    "longDescription": "Connects Codex to a hosted MCP server for study hierarchies, quiz attempts, and SM-2 spaced repetition state.",
+    "developerName": "Bem Beshah",
+    "category": "Education",
+    "capabilities": ["Read", "Write"],
+    "websiteURL": "https://interview-and-learning-data-mcp-production.up.railway.app/",
+    "privacyPolicyURL": "https://interview-and-learning-data-mcp-production.up.railway.app/privacy",
+    "termsOfServiceURL": "https://interview-and-learning-data-mcp-production.up.railway.app/terms",
+    "defaultPrompt": [
+      "Show my due study reviews.",
+      "Create a study plan for interview prep.",
+      "Log this quiz attempt."
+    ]
+  },
+  "mcpServers": "./.mcp.json"
+}

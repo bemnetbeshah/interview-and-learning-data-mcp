@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "interview_prep": {
+      "url": "https://interview-and-learning-data-mcp-production.up.railway.app/mcp",
+      "oauth_resource": "https://interview-and-learning-data-mcp-production.up.railway.app/mcp",
+      "scopes": ["study:read", "study:write"],
+      "default_tools_approval_mode": "prompt"
+    }
+  }
+}

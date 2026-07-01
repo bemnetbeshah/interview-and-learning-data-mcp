@@ -1,0 +1,25 @@
+# Production environment template for a public hosted deployment.
+# Copy values into Railway or the chosen host's environment settings.
+
+DATABASE_URL=<platform-postgres-url>
+MCP_TRANSPORT=streamable-http
+MCP_HOST=0.0.0.0
+MCP_PUBLIC_BASE_URL=https://interview-prep.example.com
+MCP_RESOURCE_SERVER_URL=https://interview-prep.example.com/mcp
+MCP_ALLOW_UNAUTHENTICATED_HTTP=false
+
+PUBLIC_SERVICE_NAME=Interview Prep MCP
+PUBLIC_CONTACT_EMAIL=support@interview-prep.example.com
+RATE_LIMIT_PER_MINUTE=120
+
+# Public OAuth/OIDC provider.
+OIDC_ISSUER_URL=https://issuer.example.com
+OIDC_JWKS_URL=https://issuer.example.com/.well-known/jwks.json
+OIDC_AUDIENCE=interview-prep-mcp
+OIDC_SUBJECT_CLAIM=sub
+OIDC_REQUIRED_SCOPES=study:read study:write
+
+# Leave private/dev auth modes unset for public launch.
+OAUTH_LOGIN_SECRET=
+MCP_BEARER_TOKEN=
+MCP_DEFAULT_SUBJECT=local-dev
