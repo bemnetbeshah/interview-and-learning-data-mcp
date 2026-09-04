@@ -4,7 +4,13 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from interview_prep_mcp.db import Database, SCHEMA_MIGRATIONS, applied_schema_migrations, connect
+from interview_prep_mcp.db import (
+    Database,
+    SCHEMA_MIGRATIONS,
+    applied_schema_migrations,
+    connect,
+    initialize_postgres_schema,
+)
 
 
 class DatabaseSchemaTests(unittest.TestCase):
@@ -25,6 +31,22 @@ class DatabaseSchemaTests(unittest.TestCase):
         db = connect(":memory:")
 
         self.assertEqual(applied_schema_migrations(db), [version for version, _description in SCHEMA_MIGRATIONS])
+
+    def test_current_postgres_schema_skips_startup_ddl(self):
+        migration_table_cursor = Mock()
+        migration_table_cursor.fetchone.return_value = {"schema_migrations": "schema_migrations"}
+        versions_cursor = Mock()
+        versions_cursor.fetchall.return_value = [
+            {"version": version} for version, _description in SCHEMA_MIGRATIONS
+        ]
+        connection = Mock(closed=False)
+        connection.execute.side_effect = [migration_table_cursor, versions_cursor]
+        db = Database(connection, "postgres", "postgresql://example")
+
+        initialize_postgres_schema(db)
+
+        self.assertEqual(connection.execute.call_count, 2)
+        connection.commit.assert_called_once_with()
 
     def test_reinitializing_existing_database_preserves_migration_ledger(self):
         with tempfile.TemporaryDirectory() as temp_dir:

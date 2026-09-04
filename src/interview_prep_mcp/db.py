@@ -28,6 +28,10 @@ class Database:
         self._ensure_connection()
         self.conn.commit()
 
+    def rollback(self) -> None:
+        self._ensure_connection()
+        self.conn.rollback()
+
     def _ensure_connection(self) -> None:
         """Reopen an idle Postgres connection closed by the hosting platform."""
 
@@ -187,6 +191,12 @@ def initialize_sqlite_schema(db: Database) -> None:
 
 
 def initialize_postgres_schema(db: Database) -> None:
+    # A normal application restart should not reacquire DDL locks for a schema
+    # whose migration ledger is already current. This also lets rolling
+    # deployments start while an older instance is serving read traffic.
+    if _postgres_schema_is_current(db):
+        return
+
     db.conn.execute(
         """
         CREATE TABLE IF NOT EXISTS studies (
@@ -294,12 +304,29 @@ def initialize_postgres_schema(db: Database) -> None:
     db.commit()
 
 
+def _postgres_schema_is_current(db: Database) -> bool:
+    migration_table = db.conn.execute(
+        "SELECT to_regclass('public.schema_migrations') AS schema_migrations"
+    ).fetchone()
+    if not migration_table or not _row_value(migration_table, "schema_migrations"):
+        db.commit()
+        return False
+
+    rows = db.conn.execute("SELECT version FROM schema_migrations").fetchall()
+    applied = {_row_value(row, "version") for row in rows}
+    expected = {version for version, _description in SCHEMA_MIGRATIONS}
+    db.commit()
+    return expected.issubset(applied)
+
+
 def applied_schema_migrations(db: Database) -> list[str]:
     """Return applied schema migration ids in order."""
 
     _ensure_schema_migrations_table(db)
     rows = db.execute("SELECT version FROM schema_migrations ORDER BY version").fetchall()
-    return [_row_value(row, "version") for row in rows]
+    versions = [_row_value(row, "version") for row in rows]
+    db.conn.commit()
+    return versions
 
 
 def _record_schema_migrations(db: Database) -> None:

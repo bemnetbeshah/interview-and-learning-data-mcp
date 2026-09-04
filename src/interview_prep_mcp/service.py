@@ -3,9 +3,31 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+from functools import wraps
 from typing import Any, Dict, List, Optional
 
 from .sm2 import ReviewState, update_review_state
+
+
+def _transaction_boundary(method):
+    """Commit completed operations and roll back failed ones.
+
+    Psycopg starts a transaction for reads as well as writes. Closing the
+    transaction at the public service boundary prevents read-only MCP calls
+    from remaining ``idle in transaction`` and blocking future schema work.
+    """
+
+    @wraps(method)
+    def wrapped(self, *args, **kwargs):
+        try:
+            result = method(self, *args, **kwargs)
+        except Exception:
+            self.conn.rollback()
+            raise
+        self.conn.commit()
+        return result
+
+    return wrapped
 
 
 class InterviewPrepService:
@@ -16,6 +38,7 @@ class InterviewPrepService:
     def for_subject(self, owner_subject: str) -> "InterviewPrepService":
         return InterviewPrepService(self.conn, owner_subject)
 
+    @_transaction_boundary
     def list_studies(self) -> List[Dict[str, Any]]:
         rows = self.conn.execute(
             """
@@ -28,6 +51,7 @@ class InterviewPrepService:
         ).fetchall()
         return [_dict(row) for row in rows]
 
+    @_transaction_boundary
     def create_study(self, name: str) -> Dict[str, Any]:
         _require_text(name, "name")
         cur = self.conn.execute(
@@ -38,6 +62,7 @@ class InterviewPrepService:
         self.conn.commit()
         return self._get_study(study_id)
 
+    @_transaction_boundary
     def list_topics(self, study_id: int) -> List[Dict[str, Any]]:
         self._ensure_active("studies", study_id)
         rows = self.conn.execute(
@@ -51,6 +76,7 @@ class InterviewPrepService:
         ).fetchall()
         return [_dict(row) for row in rows]
 
+    @_transaction_boundary
     def create_topic(self, study_id: int, name: str) -> Dict[str, Any]:
         self._ensure_active("studies", study_id)
         _require_text(name, "name")
@@ -72,6 +98,7 @@ class InterviewPrepService:
         self.conn.commit()
         return self._get_topic(topic_id)
 
+    @_transaction_boundary
     def list_subtopics(self, topic_id: int) -> List[Dict[str, Any]]:
         self._ensure_active("topics", topic_id)
         rows = self.conn.execute(
@@ -87,6 +114,7 @@ class InterviewPrepService:
         ).fetchall()
         return [_dict(row) for row in rows]
 
+    @_transaction_boundary
     def create_subtopic(
         self, topic_id: int, name: str, description: Optional[str] = None
     ) -> Dict[str, Any]:
@@ -104,6 +132,7 @@ class InterviewPrepService:
         self.conn.commit()
         return self._get_subtopic(subtopic_id)
 
+    @_transaction_boundary
     def update_subtopic(
         self,
         subtopic_id: int,
@@ -127,18 +156,22 @@ class InterviewPrepService:
         self.conn.commit()
         return self._get_subtopic(subtopic_id)
 
+    @_transaction_boundary
     def delete_study(self, id: int) -> Dict[str, Any]:
         self._soft_delete("studies", id)
         return {"id": id, "deleted": True}
 
+    @_transaction_boundary
     def delete_topic(self, id: int) -> Dict[str, Any]:
         self._soft_delete("topics", id)
         return {"id": id, "deleted": True}
 
+    @_transaction_boundary
     def delete_subtopic(self, id: int) -> Dict[str, Any]:
         self._soft_delete("subtopics", id)
         return {"id": id, "deleted": True}
 
+    @_transaction_boundary
     def log_attempt(
         self,
         subtopic_id: int,
@@ -206,6 +239,7 @@ class InterviewPrepService:
             "summary": update.next_review_summary,
         }
 
+    @_transaction_boundary
     def get_due_subtopics(
         self, study_id: Optional[int] = None, limit: Optional[int] = None
     ) -> List[Dict[str, Any]]:
@@ -259,6 +293,7 @@ class InterviewPrepService:
         ).fetchall()
         return [_dict(row) for row in rows]
 
+    @_transaction_boundary
     def get_subtopic_history(self, subtopic_id: int) -> Dict[str, Any]:
         subtopic = self._get_subtopic(subtopic_id)
         attempts = self.conn.execute(
@@ -286,6 +321,7 @@ class InterviewPrepService:
             "attempts": [_dict(row) for row in attempts],
         }
 
+    @_transaction_boundary
     def export_my_data(self) -> Dict[str, Any]:
         """Return all study data owned by the current subject."""
 
@@ -359,6 +395,7 @@ class InterviewPrepService:
             "subtopic_state": [_dict(row) for row in states],
         }
 
+    @_transaction_boundary
     def delete_my_data(self, confirmation: str) -> Dict[str, Any]:
         """Hard-delete all study data owned by the current subject."""
 

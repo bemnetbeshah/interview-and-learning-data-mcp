@@ -284,7 +284,12 @@ class PersonalOAuthProvider:
         return token
 
     def _fetchone(self, sql: str, params: tuple[Any, ...]) -> dict[str, Any] | None:
-        row = self.db.execute(sql, params).fetchone()
+        try:
+            row = self.db.execute(sql, params).fetchone()
+        except Exception:
+            self.db.rollback()
+            raise
+        self.db.commit()
         return dict(row) if row else None
 
 
