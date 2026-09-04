@@ -13,17 +13,29 @@ SCHEMA_MIGRATIONS = [
 
 
 class Database:
-    def __init__(self, conn: Any, dialect: str):
+    def __init__(self, conn: Any, dialect: str, database_url: str | None = None):
         self.conn = conn
         self.dialect = dialect
+        self.database_url = database_url
 
     def execute(self, sql: str, params: Iterable[Any] = ()):
+        self._ensure_connection()
         if self.dialect == "postgres":
             sql = sql.replace("?", "%s")
         return self.conn.execute(sql, tuple(params))
 
     def commit(self) -> None:
+        self._ensure_connection()
         self.conn.commit()
+
+    def _ensure_connection(self) -> None:
+        """Reopen an idle Postgres connection closed by the hosting platform."""
+
+        if self.dialect != "postgres" or not getattr(self.conn, "closed", False):
+            return
+        if not self.database_url:
+            raise RuntimeError("Cannot reconnect to Postgres without DATABASE_URL")
+        self.conn = _open_postgres_connection(self.database_url)
 
 
 def connect(db_path: PathLike, database_url: str | None = None) -> Database:
@@ -46,13 +58,16 @@ def connect_sqlite(db_path: PathLike) -> Database:
 
 
 def connect_postgres(database_url: str) -> Database:
+    db = Database(_open_postgres_connection(database_url), "postgres", database_url)
+    initialize_schema(db)
+    return db
+
+
+def _open_postgres_connection(database_url: str):
     import psycopg
     from psycopg.rows import dict_row
 
-    conn = psycopg.connect(database_url, row_factory=dict_row)
-    db = Database(conn, "postgres")
-    initialize_schema(db)
-    return db
+    return psycopg.connect(database_url, row_factory=dict_row)
 
 
 def initialize_schema(db: Database) -> None:
