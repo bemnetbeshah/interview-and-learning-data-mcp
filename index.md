@@ -3,6 +3,7 @@
 | Path | Description |
 | --- | --- |
 | [AGENTS.md](./AGENTS.md) | Authoritative instructions for agents working in this project. |
+| [CLAUDE.md](./CLAUDE.md) | Symlink to the authoritative agent instructions for Claude-compatible tools. |
 | [Dockerfile](./Dockerfile) | Container image definition and healthcheck for hosted MCP deployment. |
 | [.env.example](./.env.example) | Example environment variables for local and hosted runs. |
 | [.agents/](./.agents/) | Repo-local Codex plugin marketplace metadata. |
