@@ -9,7 +9,7 @@ description = "Hosted MCP server for shared interview prep progress and spaced r
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-  "mcp>=1.9.0",
+  "mcp>=1.9.0,<2",
   "pydantic>=2.0",
   "psycopg[binary]>=3.2",
   "pyjwt[crypto]>=2.10.1",

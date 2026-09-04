@@ -1,4 +1,5 @@
 import tempfile
+import tomllib
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -7,6 +8,12 @@ from interview_prep_mcp.server import build_mcp
 
 
 class McpContractTests(unittest.IsolatedAsyncioTestCase):
+    def test_mcp_sdk_dependency_is_pinned_to_supported_major_version(self):
+        project_root = Path(__file__).resolve().parents[1]
+        pyproject = tomllib.loads((project_root / "pyproject.toml").read_text())
+
+        self.assertIn("mcp>=1.9.0,<2", pyproject["project"]["dependencies"])
+
     async def test_registered_tools_match_prd_surface(self):
         expected_tools = {
             "list_studies",
